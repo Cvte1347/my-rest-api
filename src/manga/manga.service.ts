@@ -1,0 +1,63 @@
+// src/manga/manga.service.ts
+import { Injectable, BadGatewayException, InternalServerErrorException, NotFoundException } from '@nestjs/common';
+import { HttpService } from '@nestjs/axios';
+import { ConfigService } from '@nestjs/config';
+import { firstValueFrom } from 'rxjs';
+
+type CoverSize = 'original' | '256' | '512';
+
+@Injectable()
+export class MangaService {
+  constructor(
+    private readonly http: HttpService,
+    private readonly config: ConfigService,
+  ) {}
+
+  private get apiBase(): string {
+    return this.config.get<string>('MANGADEX_API_BASE', 'https://api.mangadex.org');
+  }
+
+  private get uploadsBase(): string {
+    return this.config.get<string>('MANGADEX_UPLOADS_BASE', 'https://uploads.mangadex.org');
+  }
+
+  private get httpTimeoutMs(): number {
+    return this.config.get<number>('HTTP_TIMEOUT_MS', 5000);
+  }
+
+  private toSuffix(size: CoverSize): string {
+    if (size === '256') return '.256.jpg';
+    if (size === '512') return '.512.jpg';
+    return '';
+  }
+
+  async getRandomCover(size: CoverSize = 'original'): Promise<{ mangaId: string; coverUrl: string; size: CoverSize }> {
+    const url = `${this.apiBase}/manga/random?includes[]=cover_art`;
+
+    let data: any;
+    try {
+      const res = await firstValueFrom(this.http.get(url, { timeout: this.httpTimeoutMs }));
+      data = res?.data?.data;
+    } catch {
+      throw new BadGatewayException('UPSTREAM_ERROR');
+    }
+
+    if (!data?.id) {
+      throw new InternalServerErrorException('INVALID_UPSTREAM_RESPONSE');
+    }
+
+    const coverRel = Array.isArray(data.relationships)
+      ? data.relationships.find((r: any) => r?.type === 'cover_art')
+      : undefined;
+    const fileName: string | undefined = coverRel?.attributes?.fileName;
+
+    if (!fileName) {
+      throw new NotFoundException('COVER_NOT_FOUND');
+    }
+
+    const suffix = this.toSuffix(size);
+    const coverUrl = `${this.uploadsBase}/covers/${data.id}/${fileName}${suffix}`;
+
+    return { mangaId: data.id, coverUrl, size };
+  }
+}
