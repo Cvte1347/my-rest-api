@@ -18,13 +18,9 @@ export const mangalibSchema = pgSchema('mangalib');
 // Таблица manga
 export const manga = mangalibSchema.table('manga', {
   id: serial('id').primaryKey(),
-  title: varchar('title', { length: 200 }).notNull(),
-  author: varchar('author', { length: 100 }),
-  description: text('description'),
+  mangadexId: varchar('mangadex_id', { length: 50 }).notNull().unique(),
+  title: varchar('title', { length: 500 }).notNull(),
   coverUrl: text('cover_url'),
   status: varchar('status', { length: 20 }).default('ongoing'),
-  rating: varchar('rating', { length: 5 }),
-  chaptersCount: integer('chapters_count').default(0),
   createdAt: timestamp('created_at').defaultNow(),
-  updatedAt: timestamp('updated_at').defaultNow(),
 });
