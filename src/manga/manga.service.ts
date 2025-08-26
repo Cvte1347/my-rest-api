@@ -1,6 +1,11 @@
 // src/manga/manga.service.ts
-import { Injectable, BadGatewayException, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
+import {
+  BadGatewayException,
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { firstValueFrom } from 'rxjs';
 
@@ -14,11 +19,17 @@ export class MangaService {
   ) {}
 
   private get apiBase(): string {
-    return this.config.get<string>('MANGADEX_API_BASE', 'https://api.mangadex.org');
+    return this.config.get<string>(
+      'MANGADEX_API_BASE',
+      'https://api.mangadex.org',
+    );
   }
 
   private get uploadsBase(): string {
-    return this.config.get<string>('MANGADEX_UPLOADS_BASE', 'https://uploads.mangadex.org');
+    return this.config.get<string>(
+      'MANGADEX_UPLOADS_BASE',
+      'https://uploads.mangadex.org',
+    );
   }
 
   private get httpTimeoutMs(): number {
@@ -31,12 +42,16 @@ export class MangaService {
     return '';
   }
 
-  async getRandomCover(size: CoverSize = 'original'): Promise<{ mangaId: string; coverUrl: string; size: CoverSize }> {
+  async getRandomCover(
+    size: CoverSize = 'original',
+  ): Promise<{ mangaId: string; coverUrl: string; size: CoverSize }> {
     const url = `${this.apiBase}/manga/random?includes[]=cover_art`;
 
     let data: any;
     try {
-      const res = await firstValueFrom(this.http.get(url, { timeout: this.httpTimeoutMs }));
+      const res = await firstValueFrom(
+        this.http.get(url, { timeout: this.httpTimeoutMs }),
+      );
       data = res?.data?.data;
     } catch {
       throw new BadGatewayException('UPSTREAM_ERROR');

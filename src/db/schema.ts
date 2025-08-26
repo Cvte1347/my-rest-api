@@ -1,4 +1,12 @@
-import { pgTable, serial, varchar, text, timestamp, pgSchema, integer } from 'drizzle-orm/pg-core';
+import {
+  integer,
+  pgSchema,
+  pgTable,
+  serial,
+  text,
+  timestamp,
+  varchar,
+} from 'drizzle-orm/pg-core';
 
 // Создаём схему users
 export const usersSchema = pgSchema('users');
