@@ -5,11 +5,17 @@ import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 import { firstValueFrom } from 'rxjs';
 import { manga } from '../db/schema';
+import {
+  MangaDexListResponse,
+  MangaDexManga,
+  MangaDexResponse,
+  SavedMangaResult,
+} from './types';
 
 @Injectable()
 export class MangadexParserService {
   private readonly logger = new Logger(MangadexParserService.name);
-  private readonly db: any;
+  private readonly db: ReturnType<typeof drizzle>;
 
   constructor(private readonly http: HttpService) {
     const pool = new Pool({
@@ -19,11 +25,13 @@ export class MangadexParserService {
   }
 
   // Парсинг случайной манги
-  async parseRandomManga() {
+  async parseRandomManga(): Promise<SavedMangaResult> {
     try {
       const url = 'https://api.mangadex.org/manga/random?includes[]=cover_art';
-      const response = await firstValueFrom(this.http.get(url));
-      const mangaData = response.data.data;
+      const response = await firstValueFrom(
+        this.http.get<MangaDexResponse>(url),
+      );
+      const mangaData = response.data.data as MangaDexManga;
 
       return await this.saveMangaToDb(mangaData);
     } catch (error) {
@@ -33,11 +41,13 @@ export class MangadexParserService {
   }
 
   // Парсинг манги по ID
-  async parseMangaById(mangadexId: string) {
+  async parseMangaById(mangadexId: string): Promise<SavedMangaResult> {
     try {
       const url = `https://api.mangadex.org/manga/${mangadexId}?includes[]=cover_art`;
-      const response = await firstValueFrom(this.http.get(url));
-      const mangaData = response.data.data;
+      const response = await firstValueFrom(
+        this.http.get<MangaDexResponse>(url),
+      );
+      const mangaData = response.data.data as MangaDexManga;
 
       return await this.saveMangaToDb(mangaData);
     } catch (error) {
@@ -47,7 +57,9 @@ export class MangadexParserService {
   }
 
   // Сохранение в базу данных
-  private async saveMangaToDb(mangaData: any) {
+  private async saveMangaToDb(
+    mangaData: MangaDexManga,
+  ): Promise<SavedMangaResult> {
     const { id: mangadexId, attributes, relationships } = mangaData;
 
     // Получаем название (приоритет: en -> ja -> другие)
@@ -61,7 +73,7 @@ export class MangadexParserService {
     const status = attributes.status || 'ongoing';
 
     // Ищем обложку
-    const coverRel = relationships?.find((r: any) => r.type === 'cover_art');
+    const coverRel = relationships?.find((r) => r.type === 'cover_art');
     const coverFileName = coverRel?.attributes?.fileName;
     const coverUrl = coverFileName
       ? `https://uploads.mangadex.org/covers/${mangadexId}/${coverFileName}`
@@ -105,13 +117,15 @@ export class MangadexParserService {
   }
 
   // Парсинг популярных манг
-  async parsePopularManga(limit: number = 10) {
+  async parsePopularManga(limit: number = 10): Promise<SavedMangaResult[]> {
     try {
       const url = `https://api.mangadex.org/manga?includes[]=cover_art&order[followedCount]=desc&limit=${limit}`;
-      const response = await firstValueFrom(this.http.get(url));
+      const response = await firstValueFrom(
+        this.http.get<MangaDexListResponse>(url),
+      );
       const mangaList = response.data.data;
 
-      const results: any[] = [];
+      const results: SavedMangaResult[] = [];
       for (const mangaData of mangaList) {
         try {
           const result = await this.saveMangaToDb(mangaData);

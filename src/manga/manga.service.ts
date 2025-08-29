@@ -8,8 +8,12 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { firstValueFrom } from 'rxjs';
-
-type CoverSize = 'original' | '256' | '512';
+import {
+  CoverResult,
+  CoverSize,
+  MangaDexManga,
+  MangaDexResponse,
+} from './types';
 
 @Injectable()
 export class MangaService {
@@ -42,17 +46,15 @@ export class MangaService {
     return '';
   }
 
-  async getRandomCover(
-    size: CoverSize = 'original',
-  ): Promise<{ mangaId: string; coverUrl: string; size: CoverSize }> {
+  async getRandomCover(size: CoverSize = 'original'): Promise<CoverResult> {
     const url = `${this.apiBase}/manga/random?includes[]=cover_art`;
 
-    let data: any;
+    let data: MangaDexManga;
     try {
       const res = await firstValueFrom(
-        this.http.get(url, { timeout: this.httpTimeoutMs }),
+        this.http.get<MangaDexResponse>(url, { timeout: this.httpTimeoutMs }),
       );
-      data = res?.data?.data;
+      data = res.data.data as MangaDexManga;
     } catch {
       throw new BadGatewayException('UPSTREAM_ERROR');
     }
@@ -61,10 +63,9 @@ export class MangaService {
       throw new InternalServerErrorException('INVALID_UPSTREAM_RESPONSE');
     }
 
-    const coverRel = Array.isArray(data.relationships)
-      ? data.relationships.find((r: any) => r?.type === 'cover_art')
-      : undefined;
-    const fileName: string | undefined = coverRel?.attributes?.fileName;
+    const relationships = data.relationships || [];
+    const coverRel = relationships.find((r) => r.type === 'cover_art');
+    const fileName = coverRel?.attributes?.fileName;
 
     if (!fileName) {
       throw new NotFoundException('COVER_NOT_FOUND');
