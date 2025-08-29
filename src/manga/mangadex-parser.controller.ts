@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Param, Query } from '@nestjs/common';
+import { Controller, Get, Param, Post, Query } from '@nestjs/common';
 import { MangadexParserService } from './mangadex-parser.service';
 
 @Controller('mangadex-parser')
