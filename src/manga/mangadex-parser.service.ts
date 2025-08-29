@@ -1,10 +1,10 @@
-import { Injectable, Logger } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
-import { firstValueFrom } from 'rxjs';
+import { Injectable, Logger } from '@nestjs/common';
+import { eq } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
+import { firstValueFrom } from 'rxjs';
 import { manga } from '../db/schema';
-import { eq } from 'drizzle-orm';
 
 @Injectable()
 export class MangadexParserService {
@@ -48,17 +48,14 @@ export class MangadexParserService {
 
   // Сохранение в базу данных
   private async saveMangaToDb(mangaData: any) {
-    const {
-      id: mangadexId,
-      attributes,
-      relationships
-    } = mangaData;
+    const { id: mangadexId, attributes, relationships } = mangaData;
 
     // Получаем название (приоритет: en -> ja -> другие)
-    const title = attributes.title.en || 
-                  attributes.title.ja || 
-                  Object.values(attributes.title)[0] || 
-                  'Unknown Title';
+    const title =
+      attributes.title.en ||
+      attributes.title.ja ||
+      Object.values(attributes.title)[0] ||
+      'Unknown Title';
 
     // Получаем статус
     const status = attributes.status || 'ongoing';
@@ -66,7 +63,7 @@ export class MangadexParserService {
     // Ищем обложку
     const coverRel = relationships?.find((r: any) => r.type === 'cover_art');
     const coverFileName = coverRel?.attributes?.fileName;
-    const coverUrl = coverFileName 
+    const coverUrl = coverFileName
       ? `https://uploads.mangadex.org/covers/${mangadexId}/${coverFileName}`
       : null;
 
@@ -87,7 +84,7 @@ export class MangadexParserService {
           status,
         })
         .where(eq(manga.mangadexId, mangadexId));
-      
+
       this.logger.log(`Обновлена манга: ${title} (${mangadexId})`);
       return { ...existing[0], title, coverUrl, status, updated: true };
     } else {
@@ -101,7 +98,7 @@ export class MangadexParserService {
           status,
         })
         .returning();
-      
+
       this.logger.log(`Сохранена новая манга: ${title} (${mangadexId})`);
       return { ...newManga, created: true };
     }

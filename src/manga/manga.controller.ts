@@ -1,7 +1,7 @@
 // src/manga/manga.controller.ts
 import { Controller, Get, Header, Query, Res } from '@nestjs/common';
-import { MangaService } from './manga.service';
 import type { Response } from 'express';
+import { MangaService } from './manga.service';
 
 type CoverSize = 'original' | '256' | '512';
 
@@ -16,7 +16,10 @@ export class MangaController {
 
   @Get('random-cover.jpg')
   @Header('Cache-Control', 'no-cache')
-  async randomCoverRedirect(@Res() res: Response, @Query('size') size: CoverSize = 'original') {
+  async randomCoverRedirect(
+    @Res() res: Response,
+    @Query('size') size: CoverSize = 'original',
+  ) {
     const { coverUrl } = await this.manga.getRandomCover(size);
     return res.redirect(302, coverUrl);
   }
