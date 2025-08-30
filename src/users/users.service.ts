@@ -14,7 +14,7 @@ export class UsersService {
   }
 
   findOne(id: number) {
-    const user = this.users.find(u => u.id === id);
+    const user = this.users.find((u) => u.id === id);
     if (!user) throw new NotFoundException('User not found');
     return user;
   }
@@ -29,14 +29,14 @@ export class UsersService {
   }
 
   update(id: number, updateUserDto: UpdateUserDto) {
-    const user = this.users.find(u => u.id === id);
+    const user = this.users.find((u) => u.id === id);
     if (!user) throw new NotFoundException('User not found');
     Object.assign(user, updateUserDto);
     return user;
   }
 
   remove(id: number) {
-    const index = this.users.findIndex(u => u.id === id);
+    const index = this.users.findIndex((u) => u.id === id);
     if (index === -1) throw new NotFoundException('User not found');
     this.users.splice(index, 1);
     return { message: 'Deleted successfully' };
